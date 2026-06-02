@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/library_provider.dart';
+import '../utils/permissions.dart';
 import '../widget/comic_card.dart';
 import 'reader_screen.dart';
 
@@ -10,15 +11,25 @@ class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
 
   Future<void> _addComic(BuildContext context) async {
+    final granted = await PermissionUtils.requestStoragePermission();
+    if (!granted) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Permissão de acesso aos arquivos negada. Ative nas configurações do Android.',
+          ),
+        ),
+      );
+      return;
+    }
+
     final provider = context.read<LibraryProvider>();
 
     final result = await FilePicker.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
-      allowedExtensions: [
-        'cbz',
-        'cbr',
-      ],
+      allowedExtensions: ['cbz', 'cbr'],
     );
 
     if (result == null) return;
@@ -32,14 +43,10 @@ class LibraryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Consumer<LibraryProvider>(
       builder: (context, provider, child) {
-
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Minha Biblioteca'),
-          ),
+          appBar: AppBar(title: const Text('Minha Biblioteca')),
 
           floatingActionButton: FloatingActionButton(
             onPressed: () => _addComic(context),
@@ -49,15 +56,13 @@ class LibraryScreen extends StatelessWidget {
           body: GridView.builder(
             padding: const EdgeInsets.all(12),
             itemCount: provider.comics.length,
-            gridDelegate:
-                const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               childAspectRatio: 0.60,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
             ),
             itemBuilder: (_, i) {
-
               final comic = provider.comics[i];
 
               return ComicCard(

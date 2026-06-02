@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/library_provider.dart';
 import '../utils/app_theme.dart';
+import '../utils/permissions.dart';
 
 class AddComicScreen extends StatefulWidget {
   const AddComicScreen({super.key});
@@ -16,15 +17,23 @@ class _AddComicScreenState extends State<AddComicScreen> {
   bool _loading = false;
 
   Future<void> _selectFiles() async {
+    final granted = await PermissionUtils.requestStoragePermission();
+    if (!granted) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Permissão de acesso aos arquivos negada. Ative nas configurações do Android.',
+          ),
+        ),
+      );
+      return;
+    }
+
     final result = await FilePicker.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
-      allowedExtensions: [
-        'cbz',
-        'cbr',
-        'zip',
-        'rar',
-      ],
+      allowedExtensions: ['cbz', 'cbr', 'zip', 'rar'],
     );
 
     if (!mounted || result == null) return;
@@ -54,11 +63,7 @@ class _AddComicScreenState extends State<AddComicScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '$imported quadrinho(s) importado(s)',
-        ),
-      ),
+      SnackBar(content: Text('$imported quadrinho(s) importado(s)')),
     );
 
     Navigator.pop(context);
@@ -70,20 +75,14 @@ class _AddComicScreenState extends State<AddComicScreen> {
     if (!mounted || folder == null) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Importação por pasta será implementada.',
-        ),
-      ),
+      const SnackBar(content: Text('Importação por pasta será implementada.')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Adicionar Livros'),
-      ),
+      appBar: AppBar(title: const Text('Adicionar Livros')),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -100,10 +99,7 @@ class _AddComicScreenState extends State<AddComicScreen> {
 
             const Text(
               'Importar Quadrinhos',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 10),
@@ -119,9 +115,7 @@ class _AddComicScreenState extends State<AddComicScreen> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.file_open),
-                label: const Text(
-                  'Selecionar Arquivos',
-                ),
+                label: const Text('Selecionar Arquivos'),
                 onPressed: _loading ? null : _selectFiles,
               ),
             ),
@@ -132,9 +126,7 @@ class _AddComicScreenState extends State<AddComicScreen> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.folder_open),
-                label: const Text(
-                  'Importar Pasta',
-                ),
+                label: const Text('Importar Pasta'),
                 onPressed: _loading ? null : _selectFolder,
               ),
             ),
@@ -146,9 +138,7 @@ class _AddComicScreenState extends State<AddComicScreen> {
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 10),
-                  Text(
-                    'Importando...',
-                  ),
+                  Text('Importando...'),
                 ],
               ),
           ],
