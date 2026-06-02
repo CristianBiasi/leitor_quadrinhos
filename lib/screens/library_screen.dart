@@ -26,18 +26,19 @@ class LibraryScreen extends StatelessWidget {
 
     final provider = context.read<LibraryProvider>();
 
+    // FileType.any necessário — .cbr/.cbz não têm MIME type reconhecido pelo Android
     final result = await FilePicker.pickFiles(
       allowMultiple: true,
-      type: FileType.custom,
-      allowedExtensions: ['cbz', 'cbr'],
+      type: FileType.any,
     );
 
     if (result == null) return;
 
     for (final file in result.files) {
-      if (file.path != null) {
-        await provider.addComic(file.path!);
-      }
+      if (file.path == null) continue;
+      final ext = file.path!.split('.').last.toLowerCase();
+      if (!['cbr', 'cbz', 'zip', 'rar'].contains(ext)) continue;
+      await provider.addComic(file.path!);
     }
   }
 

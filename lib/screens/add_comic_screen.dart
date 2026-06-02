@@ -30,17 +30,13 @@ class _AddComicScreenState extends State<AddComicScreen> {
       return;
     }
 
-    FilePickerResult? result;
-    try {
-      result = await FilePicker.platform.pickFiles(
-        allowMultiple: true,
-        type: FileType.custom,
-        allowedExtensions: ['cbz', 'cbr', 'zip', 'rar'],
-      );
-    } catch (_) {
-      // fallback sem filtro de extensão (necessário em alguns dispositivos Android 16)
-      result = await FilePicker.platform.pickFiles(allowMultiple: true);
-    }
+    // FileType.any é necessário porque .cbr/.cbz não têm MIME type reconhecido
+    // pelo seletor nativo do Android — com FileType.custom os arquivos ficam
+    // desabilitados para seleção. A validação de extensão é feita abaixo.
+    final result = await FilePicker.pickFiles(
+      allowMultiple: true,
+      type: FileType.any,
+    );
 
     if (!mounted || result == null) return;
 
@@ -51,15 +47,19 @@ class _AddComicScreenState extends State<AddComicScreen> {
     final provider = context.read<LibraryProvider>();
 
     int imported = 0;
+    int skipped = 0;
 
     for (final file in result.files) {
-      if (file.path != null) {
-        final comic = await provider.addComic(file.path!);
+      if (file.path == null) continue;
 
-        if (comic != null) {
-          imported++;
-        }
+      final ext = file.path!.split('.').last.toLowerCase();
+      if (!['cbr', 'cbz', 'zip', 'rar'].contains(ext)) {
+        skipped++;
+        continue;
       }
+
+      final comic = await provider.addComic(file.path!);
+      if (comic != null) imported++;
     }
 
     if (!mounted) return;
@@ -68,15 +68,17 @@ class _AddComicScreenState extends State<AddComicScreen> {
       _loading = false;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$imported quadrinho(s) importado(s)')),
-    );
+    final msg = skipped > 0
+        ? '$imported quadrinho(s) importado(s). $skipped arquivo(s) ignorado(s) (formato não suportado).'
+        : '$imported quadrinho(s) importado(s)';
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
     Navigator.pop(context);
   }
 
   Future<void> _selectFolder() async {
-    final folder = await FilePicker.platform.getDirectoryPath();
+    final folder = await FilePicker.getDirectoryPath();
 
     if (!mounted || folder == null) return;
 

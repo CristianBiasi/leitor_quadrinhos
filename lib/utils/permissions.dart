@@ -4,47 +4,56 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionUtils {
-  /// Retorna a versão do SDK do Android, ou null em outras plataformas.
-  static Future<int?> _androidSdkVersion() async {
-    if (!Platform.isAndroid) return null;
+  /// Retorna a versão do SDK do Android, ou 0 em outras plataformas.
+  static Future<int> _androidSdkVersion() async {
+    if (!Platform.isAndroid) return 0;
     final info = await DeviceInfoPlugin().androidInfo;
     return info.version.sdkInt;
   }
 
-  /// Solicita permissão de armazenamento compatível com todas as versões do Android.
+  /// Solicita permissão para acessar arquivos do dispositivo (documentos, CBR, CBZ).
   ///
-  /// - Android < 13 (API < 33): usa READ_EXTERNAL_STORAGE
-  /// - Android 13-15 (API 33-35): usa READ_MEDIA_IMAGES + READ_MEDIA_VIDEO
-  /// - Android 16+ (API 36+): file_picker usa SAF/Photo Picker,
-  ///   nenhuma permissão em runtime é necessária — retorna true direto.
+  /// - Android >= 11 (API 30+): usa MANAGE_EXTERNAL_STORAGE (acesso total ao FS)
+  /// - Android < 11 (API < 30): usa READ_EXTERNAL_STORAGE (permissão clássica)
+  /// - Outras plataformas: retorna true diretamente
   static Future<bool> requestStoragePermission() async {
     if (!Platform.isAndroid) return true;
 
-    final sdk = await _androidSdkVersion() ?? 0;
+    final sdk = await _androidSdkVersion();
 
-    // Android 16+ (API 36+): Storage Access Framework não exige permissão
-    if (sdk >= 36) return true;
+    if (sdk >= 30) {
+      // Android 11+: MANAGE_EXTERNAL_STORAGE para acesso a documentos/arquivos arbitrários
+      final status = await Permission.manageExternalStorage.status;
+      if (status.isGranted) return true;
 
-    // Android 13-15 (API 33-35): granular media permissions
-    if (sdk >= 33) {
-      final images = await Permission.photos.status;
-      if (images.isGranted) return true;
+      final result = await Permission.manageExternalStorage.request();
+      if (result.isGranted) return true;
 
-      final result = await Permission.photos.request();
+      if (result.isPermanentlyDenied) await openAppSettings();
+      return false;
+    } else {
+      // Android < 11: READ_EXTERNAL_STORAGE clássico
+      final status = await Permission.storage.status;
+      if (status.isGranted) return true;
+
+      final result = await Permission.storage.request();
       if (result.isGranted) return true;
 
       if (result.isPermanentlyDenied) await openAppSettings();
       return false;
     }
+  }
 
-    // Android < 13 (API < 33): permissão de armazenamento clássica
-    final status = await Permission.storage.status;
-    if (status.isGranted) return true;
+  /// Verifica sem solicitar se a permissão já foi concedida.
+  static Future<bool> hasStoragePermission() async {
+    if (!Platform.isAndroid) return true;
 
-    final result = await Permission.storage.request();
-    if (result.isGranted) return true;
+    final sdk = await _androidSdkVersion();
 
-    if (result.isPermanentlyDenied) await openAppSettings();
-    return false;
+    if (sdk >= 30) {
+      return await Permission.manageExternalStorage.isGranted;
+    } else {
+      return await Permission.storage.isGranted;
+    }
   }
 }

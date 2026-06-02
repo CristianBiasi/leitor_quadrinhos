@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/library_provider.dart';
-import 'screens/home_screen.dart';
+import 'screens/permission_screen.dart';
 import 'utils/app_theme.dart';
 
 void main() {
@@ -23,7 +23,7 @@ class ComicReaderApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Leitor HQ',
       theme: AppTheme.darkTheme,
-      home: const HomeScreen(),
+      home: const PermissionScreen(),
     );
   }
 }
