@@ -1,8 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- Android < 13 (API < 33) -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <!-- Android 13-15 (API 33-35): permissões granulares de mídia -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
+    <!-- Android 14+ (API 34+): acesso parcial a fotos/vídeos -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
     <application
         android:label="Leitor HQ"
         android:name="${applicationName}"

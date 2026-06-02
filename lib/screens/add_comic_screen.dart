@@ -30,11 +30,17 @@ class _AddComicScreenState extends State<AddComicScreen> {
       return;
     }
 
-    final result = await FilePicker.pickFiles(
-      allowMultiple: true,
-      type: FileType.custom,
-      allowedExtensions: ['cbz', 'cbr', 'zip', 'rar'],
-    );
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.custom,
+        allowedExtensions: ['cbz', 'cbr', 'zip', 'rar'],
+      );
+    } catch (_) {
+      // fallback sem filtro de extensão (necessário em alguns dispositivos Android 16)
+      result = await FilePicker.platform.pickFiles(allowMultiple: true);
+    }
 
     if (!mounted || result == null) return;
 
@@ -70,7 +76,7 @@ class _AddComicScreenState extends State<AddComicScreen> {
   }
 
   Future<void> _selectFolder() async {
-    final folder = await FilePicker.getDirectoryPath();
+    final folder = await FilePicker.platform.getDirectoryPath();
 
     if (!mounted || folder == null) return;
 
